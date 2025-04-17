@@ -1,14 +1,21 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from typing import Dict, List
 from model.inference import run_inference
 
 router = APIRouter()
 
 class Input(BaseModel):
-    prompt: str
+    placeId: str
+    category : str
+    placeName : str
+    menus : Dict
+    reviews : List
 
 class Output(BaseModel):
-    response: str
+    placeId: str
+    keywords : List
+    introduction : str
 
 @router.post("", response_model=Output)
 def predict(input_data: Input):
