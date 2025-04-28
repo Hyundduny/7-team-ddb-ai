@@ -249,8 +249,6 @@ Content-Type: application/json
     "recommendations": [
         {
             "id": 1,
-            "name": "맛있는 한식당",
-            "description": "전통 한식",
             "similarity_score": 0.95
         }
     ]
