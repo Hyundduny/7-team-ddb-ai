@@ -274,7 +274,7 @@ pytest tests/integration
 pytest tests/e2e
 ```
 
-## 기여
+## contribution
 1. Fork the repository
 2. Create your feature branch
 3. Commit your changes
