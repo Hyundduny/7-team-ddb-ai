@@ -50,7 +50,7 @@ class RecommenderService:
         
         # LangChain을 사용한 Gemini 모델 초기화
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-flash",
             google_api_key=api_key,
             temperature=0.7
         )
