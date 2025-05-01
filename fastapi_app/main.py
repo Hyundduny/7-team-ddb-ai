@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import inference, health
 from app.api.v1.endpoints.recommend import router as recommend_router
 
 app = FastAPI(title="추천 서비스 API")
@@ -14,8 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(inference.router, prefix="/predict", tags=["Inference"])
-app.include_router(health.router, prefix="/health", tags=["Health"])
+# 라우터 등록
 app.include_router(recommend_router, prefix="/api/v1", tags=["recommendations"])
 
 @app.get("/")
