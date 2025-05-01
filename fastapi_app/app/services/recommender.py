@@ -17,7 +17,7 @@
 
 import os
 from typing import List, Dict
-from langchain.llms import GoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from dotenv import load_dotenv
@@ -32,7 +32,7 @@ class RecommenderService:
     추출된 키워드를 기반으로 장소 추천을 생성합니다.
     
     Attributes:
-        llm (GoogleGenerativeAI): Gemini 언어 모델 인스턴스
+        llm (ChatGoogleGenerativeAI): Gemini 언어 모델 인스턴스
         prompt_template (PromptTemplate): 키워드 추출을 위한 프롬프트 템플릿
         chain (LLMChain): LangChain 체인 인스턴스
     """
@@ -49,7 +49,7 @@ class RecommenderService:
             raise ValueError("GOOGLE_API_KEY가 설정되지 않았습니다.")
         
         # LangChain을 사용한 Gemini 모델 초기화
-        self.llm = GoogleGenerativeAI(
+        self.llm = ChatGoogleGenerativeAI(
             model="gemini-pro",
             google_api_key=api_key,
             temperature=0.7
