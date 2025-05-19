@@ -6,7 +6,9 @@
     - RecommendationEngine: 추천 엔진 클래스
 """
 
+import math
 import logging
+
 from typing import Dict, List, Any
 from collections import defaultdict
 from app.services.vector_store import PlaceStore
@@ -53,7 +55,7 @@ class RecommendationEngine:
         """
         try:
             logger.info(f"추천 시작: 키워드={keywords}")
-            place_scores = defaultdict(float)
+            category_place_max_scores = defaultdict(lambda: defaultdict(float))
             
             # 전체 키워드 수를 고려한 카테고리 가중치 설정
             total_keywords_num = sum(len(v) for v in keywords.values())
@@ -83,34 +85,36 @@ class RecommendationEngine:
                             
                         # 유사도 계산 및 점수 누적
                         for meta, dist in zip(results["metadatas"][0], results["distances"][0]):
-                            if not meta or not dist:
+                            if meta is None:
+                                continue
+                            if dist is None or (isinstance(dist, float) and math.isnan(dist)):
                                 continue
                             pid = meta.get("place_id")
                             if not pid:
                                 continue
                             sim = 1 - dist
 
-                            # 카테고리 가중치 부여
-                            if category == '장소 카테고리':
-                                place_scores[pid] += (sim * category_weight)
-                            else:
-                                place_scores[pid] += sim
-                            
+                            category_place_max_scores[category][pid] = max(category_place_max_scores[category][pid], sim)
+
                     except Exception as e:
                         logger.error(f"키워드 '{keyword}' 처리 중 오류 발생: {str(e)}")
                         continue
             
-            if not place_scores:
+            final_scores = defaultdict(float)
+            for category, place_dict in category_place_max_scores.items():
+                for pid, score in place_dict.items():
+                    if category == "장소 카테고리":
+                        score *= category_weight
+                    final_scores[pid] += score
+
+            if not final_scores:
                 # logger.warning("추천할 장소가 없습니다.")
                 return RecommendResponse(recommendations=[])
             
-            # 최종 추천 장소 반환
-            sorted_places = sorted(
-                place_scores.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )
-            
+            # 필터링 및 정렬
+            filtered_scores = {pid: score for pid, score in final_scores.items() if score >= SIMILARITY_THRESHOLD}
+            sorted_places = sorted(filtered_scores.items(), key=lambda x: x[1], reverse=True)
+
             # logger.info(f"최종 추천 장소: {sorted_places}")
             
             recommendations = [
@@ -119,7 +123,6 @@ class RecommendationEngine:
                     similarity_score=score
                 )
                 for pid, score in sorted_places
-                if score >= SIMILARITY_THRESHOLD
             ]
             
             return RecommendResponse(recommendations=recommendations)
