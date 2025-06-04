@@ -52,7 +52,7 @@ class PlaceStore:
 
         # ChromaDB 클라이언트 초기화
         self.client = chromadb.PersistentClient(path=db_path)
-        self.embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+        self.embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME, device='cpu')
         self.category_map = CATEGORY_MAP
 
         # 컬렉션 초기화
@@ -106,7 +106,7 @@ class PlaceStore:
         self,
         category: str,
         keyword: str,
-        n_results: Optional[int] = 250
+        n_results: Optional[int] = 50
     ) -> Dict[str, Any]:
         """
         키워드와 유사한 장소 검색
