@@ -15,11 +15,12 @@ import logging
 
 from fastapi import Depends, HTTPException
 from langchain_google_genai import ChatGoogleGenerativeAI
-from typing import Generator
 
 from app.core.config import settings
 from app.services.recommender import RecommenderService
+from app.services.llm_factory import LLMFactory
 from app.services.vector_store import PlaceStore
+from app.services.place_store_factory import PlaceStoreFactory
 from app.logging.di import get_logger_dep
 from monitoring.metrics import metrics as recommend_metrics  # 추천 API 메트릭 싱글턴 인스턴스 임포트
 # TODO: 추후 구현 예정
@@ -40,32 +41,21 @@ def get_llm() -> ChatGoogleGenerativeAI:
         HTTPException: LLM 초기화 실패 시
     """
     try:
-        return ChatGoogleGenerativeAI(
-            model=settings.MODEL_NAME,
-            google_api_key=settings.GOOGLE_API_KEY,
-            temperature=settings.TEMPERATURE
-        )
+        return LLMFactory.get_instance()
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"LLM 초기화 실패: {str(e)}"
         )
 
-def get_place_store(logger: logging.Logger = Depends(get_logger_dep)) -> Generator[PlaceStore, None, None]:
-    store = None
+def get_place_store() -> PlaceStore:
     try:
-        store = PlaceStore()
-        yield store
+        return PlaceStoreFactory.get_instance()
     except Exception as e:
-        import traceback
-        logger.error("❌ get_place_store() 예외 발생:\n" + traceback.format_exc())
         raise HTTPException(
             status_code=500,
-            detail=f"벡터 저장소 초기화 실패: {str(e)}"
+            detail=f"PlaceStore 로딩 실패: {str(e)}"
         )
-    finally:
-        if store:
-            store.close()
 
 
 # 추천 서비스 의존성
