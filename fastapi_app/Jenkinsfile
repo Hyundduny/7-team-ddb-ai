@@ -123,7 +123,7 @@ pipeline {
                     script {
                         sh """
                         gcloud secrets versions access latest \
-                        --secret="jenkins-ssh-key-shared" \
+                        --secret="jenkins-sa-key-shared" \
                         --project="${env.PROJECT_ID}" > jenkins-gcp-key.json
                         """
 
