@@ -17,13 +17,17 @@ from fastapi import Depends, HTTPException
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.core.config import settings
-from app.services.recommender import RecommenderService
+from app.services.recommend.service import RecommenderService
+from app.services.recommend.keyword_extractor import KeywordExtractor
 from app.services.llm_factory import LLMFactory
-from app.services.vector_store import PlaceStore
+from app.services.recommend.retriever import PlaceStore
 from app.services.place_store_factory import PlaceStoreFactory
+from app.services.recommend.embedding import EmbeddingModel
+from app.services.embedding_factory import EmbeddingModelFactory
+from app.services.recommend.engine import RecommendationEngine
 from app.logging.di import get_logger_dep
 from monitoring.metrics import metrics as recommend_metrics  # 추천 API 메트릭 싱글턴 인스턴스 임포트
-from app.services.moment_generator import GeneratorService
+from app.services.moment.generator import GeneratorService
 # TODO: 추후 구현 예정
 # import logging
 # from typing import Generator
@@ -48,6 +52,35 @@ def get_llm() -> ChatGoogleGenerativeAI:
             status_code=500,
             detail=f"LLM 초기화 실패: {str(e)}"
         )
+    
+def get_keyword_extractor(
+    llm: ChatGoogleGenerativeAI = Depends(get_llm)
+) -> KeywordExtractor:
+    try:
+        return KeywordExtractor(
+            llm=llm
+        )
+    except Exception as e:
+        logger.error(f"키워드 추출기 초기화 실패: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"키워드 추출기 초기화 실패: {str(e)}"
+        )
+
+def get_embedding_model() -> EmbeddingModel:
+    """
+    임베딩 모델의 싱글톤 인스턴스를 반환합니다.
+    
+    Returns:
+        SentenceTransformer: 임베딩 모델 인스턴스
+    """
+    try:
+        return EmbeddingModelFactory.get_instance()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Embedding model 초기화 실패: {str(e)}"
+        )
 
 def get_place_store() -> PlaceStore:
     try:
@@ -58,11 +91,24 @@ def get_place_store() -> PlaceStore:
             detail=f"PlaceStore 로딩 실패: {str(e)}"
         )
 
+def get_recommendation_engine(
+        place_store: PlaceStore = Depends(get_place_store)
+) -> RecommendationEngine:
+    try:
+        return RecommendationEngine(
+            place_store=place_store
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"RecommendationEngine 초기화 실패: {str(e)}"
+        )
 
 # 추천 서비스 의존성
 def get_recommender(
-    llm: ChatGoogleGenerativeAI = Depends(get_llm),
-    place_store: PlaceStore = Depends(get_place_store),
+    keyword_extractor: KeywordExtractor = Depends(get_keyword_extractor),
+    embedding_model: EmbeddingModel = Depends(get_embedding_model),
+    recommendation_engine: RecommendationEngine = Depends(get_recommendation_engine),
     logger: logging.Logger = Depends(get_logger_dep)
 ) -> RecommenderService:
     """
@@ -80,8 +126,9 @@ def get_recommender(
     """
     try:
         return RecommenderService(
-            llm=llm,
-            place_store=place_store
+            keyword_extractor=keyword_extractor,
+            embedding_model=embedding_model,
+            recommendation_engine=recommendation_engine
         )
     except Exception as e:
         logger.error(f"추천 서비스 초기화 실패: {str(e)}")
