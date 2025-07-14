@@ -10,8 +10,7 @@ import pandas as pd
 
 from app.core.config import settings
 from app.core.constants import CATEGORY_MAP
-from app.core.embedding import get_embedding_model
-from app.services.onnx_wrapper import ONNXEmbeddingFunction
+from app.api.deps import get_embedding_model
 
 def is_valid_embedding(vec, expected_dim=768):
     if not isinstance(vec, list):
@@ -57,7 +56,6 @@ def make_chroma_db():
     # ✅ Chroma 저장 경로 생성
     os.makedirs(chroma_path, exist_ok=True)
     client = chromadb.PersistentClient(path=chroma_path)
-    embedding_func = ONNXEmbeddingFunction(embedding_model)
 
     # ✅ 데이터 로드
     df_place_ids = pd.read_csv(csv_path)
@@ -93,13 +91,12 @@ def make_chroma_db():
 
                 collection = client.create_collection(
                     name=collection_name,
-                    embedding_function=embedding_func,
                     metadata=metadata
                 )
 
             for keyword in keyword_list:
                 try:
-                    vec = embedding_model.encode(keyword).tolist()
+                    vec = embedding_model.encode(keyword)
 
                     if not is_valid_embedding(vec, expected_dim=embedding_dim):
                         print(f"❌ 유효하지 않은 임베딩: {keyword}")
